@@ -4,6 +4,6 @@ image:
   repository: busybox
   tag: latest
 
-namespace: demo
+namespace: test
 
 sleepSeconds: 10

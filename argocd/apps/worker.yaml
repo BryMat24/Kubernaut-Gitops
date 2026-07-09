@@ -11,7 +11,7 @@ spec:
     path: charts/worker
   destination:
     server: https://kubernetes.default.svc
-    namespace: demo
+    namespace: test
   syncPolicy:
     automated:
       prune: true
