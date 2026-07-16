@@ -1,45 +1,54 @@
 # Kubernaut GitOps Sandbox
 
-This repository is a **dummy GitOps environment** used to build and test an AI coding
-agent that assists with GitOps repo changes (patching manifests, editing Helm values,
-adding overlays, etc.). It has no real production purpose.
+Three FastAPI services wired as a real HTTP call chain, for `k8s_agent` integration test
+scenarios that need application-level failures (crash, OOM, slow start, degrade-after-N,
+readiness failure) to propagate across a real service boundary instead of being faked.
+
+```
+frontend  →  backend  →  cache
+(edge)       (logic)     (terminal)
+```
+
+This is a manifests-only GitOps repo (Kustomize) — there's no application source code here,
+just the Kubernetes wiring for pre-built images.
 
 ## Layout
 
-- `argocd/` — ArgoCD Application manifests, wired using the app-of-apps pattern.
-  - `root-app.yaml` bootstraps everything by pointing at `argocd/apps/`.
-  - `argocd/apps/*.yaml` — one Application per app below.
-- `apps/` — Kustomize-managed apps, each with a `base/` and an `overlays/prod/`.
-  - `apps/frontend/` — placeholder nginx web frontend.
-  - `apps/api/` — placeholder HTTP echo API.
-- `charts/` — Helm-managed apps.
-  - `charts/worker/` — placeholder background worker chart.
-
-## Apps
-
-| App      | Managed by | Image                  | Purpose                            |
-|----------|-----------|-------------------------|-------------------------------------|
-| frontend | Kustomize | `nginx:1.27-alpine`     | Static placeholder web page         |
-| api      | Kustomize | `hashicorp/http-echo`   | Canned JSON-ish HTTP responder      |
-| worker   | Helm      | `busybox`               | Looping placeholder background job  |
-
-All apps deploy to the `demo` namespace and have no real external dependencies
-(no databases, queues, or secrets), so they can be applied to a scratch cluster
-standalone if desired.
-
-## Validating changes locally
-
-```bash
-# Kustomize apps
-kustomize build apps/frontend/overlays/prod
-kustomize build apps/api/overlays/prod
-
-# Helm chart
-helm lint charts/worker
-helm template charts/worker
+```
+app/<service>/base/            Deployment, Service, and (frontend/backend) a ConfigMap
+                                holding DOWNSTREAM_URL, the next hop in the call chain
+app/<service>/overlays/dev/    namespace: dev overlay (only env that exists so far)
+clusters/dev/                  aggregator root — pulls in all three app overlays plus
+                                the monitoring stack for the dev environment
+infrastructure/prometheus-stack/dev/
+                                kube-prometheus-stack, inflated from the upstream Helm
+                                chart via Kustomize's helmCharts generator, namespace
+                                dev-monitoring
 ```
 
-## Design & planning docs
+Each service listens on container port 8000, exposed via a ClusterIP Service on port 80.
+The frontend overlay also adds an nginx `Ingress` (`test-app.local` → `frontend-service`).
 
-See `docs/superpowers/specs/` and `docs/superpowers/plans/` for the design spec and
-implementation plan behind this scaffold.
+## Deploying to dev
+
+`clusters/dev` can't be applied with a plain `kubectl apply -k` — the Helm chart inflation
+needs `--enable-helm` (not exposed by `apply -k`), and the Prometheus Operator's CRDs are too
+large for client-side apply. Build and apply explicitly:
+
+```bash
+kustomize build --enable-helm clusters/dev > /tmp/dev.yaml
+kubectl apply --server-side --force-conflicts -f /tmp/dev.yaml
+```
+
+On a cluster that has never seen this tree before, the Prometheus/Alertmanager custom
+resources will fail on the first apply (`no matches for kind ... ensure CRDs are installed
+first`) because the Operator starts before its own CRDs are registered. Restart the Operator
+once the CRDs exist, then re-apply:
+
+```bash
+kubectl rollout restart deployment/prometheus-kube-prometheus-operator -n dev-monitoring
+kubectl apply --server-side --force-conflicts -f /tmp/dev.yaml
+```
+
+See `.claude/skills/apply-cluster-dev/SKILL.md` for the full procedure, verification steps,
+and troubleshooting.

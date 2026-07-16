@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: frontend-deployment
+    labels:
+        app: frontend
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: frontend
+    template:
+        metadata:
+            labels:
+                app: frontend
+        spec:
+            containers:
+                - name: frontend
+                  image: brymat24/test-app-frontend:v1
+                  ports:
+                      - containerPort: 8000
+                  env:
+                      - name: DOWNSTREAM_URL
+                        valueFrom:
+                            configMapKeyRef:
+                                name: frontend-config
+                                key: DOWNSTREAM_URL

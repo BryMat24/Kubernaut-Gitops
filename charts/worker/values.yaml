@@ -1,9 +1,0 @@
-replicaCount: 1
-
-image:
-  repository: busybox
-  tag: latest
-
-namespace: demo
-
-sleepSeconds: 10

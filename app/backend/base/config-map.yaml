@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: backend-config
+    namespace: default
+data:
+    DOWNSTREAM_URL: http://cache-service

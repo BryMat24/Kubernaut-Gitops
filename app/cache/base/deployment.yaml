@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: cache-deployment
+    labels:
+        app: cache
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: cache
+    template:
+        metadata:
+            labels:
+                app: cache
+        spec:
+            containers:
+                - name: cache
+                  image: brymat24/test-app-cache:v1
+                  ports:
+                      - containerPort: 8000
