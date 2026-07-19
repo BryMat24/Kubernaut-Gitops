@@ -25,3 +25,5 @@ spec:
                             configMapKeyRef:
                                 name: backend-config
                                 key: DOWNSTREAM_URL
+                      - name: MEMORY_LEAK_MB_PER_SEC
+                        value: "50"
