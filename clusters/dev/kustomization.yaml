@@ -6,4 +6,4 @@ resources:
     - ../../app/backend/overlays/dev
     - ../../app/cache/overlays/dev
     - ../../app/frontend/overlays/dev
-    - ../../infrastructure/prometheus-stack/dev
+    - ../../monitoring/dev
