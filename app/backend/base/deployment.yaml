@@ -27,3 +27,6 @@ spec:
                                 key: DOWNSTREAM_URL
                       - name: MEMORY_LEAK_MB_PER_SEC
                         value: "50"
+                  resources:
+                      limits:
+                          memory: "256Mi"
