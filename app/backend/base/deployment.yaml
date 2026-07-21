@@ -26,4 +26,9 @@ spec:
                                 name: backend-config
                                 key: DOWNSTREAM_URL
                       - name: MEMORY_LEAK_MB_PER_SEC
-                        value: "50"
+                        value: "5"
+                  resources:
+                      limits:
+                          memory: "256Mi"
+                      requests:
+                          memory: "128Mi"
