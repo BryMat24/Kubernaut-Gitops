@@ -16,7 +16,8 @@ spec:
         spec:
             containers:
                 - name: frontend
-                  image: brymat24/test-app-frontend:v2
+                  image: brymat24/test-frontend-app:latest
+                  imagePullPolicy: Always
                   ports:
                       - containerPort: 8000
                   env:
