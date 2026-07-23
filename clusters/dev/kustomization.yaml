@@ -7,3 +7,4 @@ resources:
     - ../../app/cache/overlays/dev
     - ../../app/frontend/overlays/dev
     - ../../monitoring/dev
+    - ../../logging/dev
