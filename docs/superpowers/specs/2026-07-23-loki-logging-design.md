@@ -43,9 +43,25 @@ Alloy-specific features, that's a separate follow-up.
 Grafana already exists via the `kube-prometheus-stack` release in `dev-monitoring`,
 with its sidecar configured (`monitoring/dev/values.yaml`,
 `grafana.sidecar.datasources.enabled: true`, `label: grafana_datasource`) to
-auto-load any ConfigMap labeled `grafana_datasource: "1"` as a datasource. Loki is
-wired into Grafana via a plain ConfigMap carrying that label — no changes to the
-`kube-prometheus-stack` release itself.
+auto-load any ConfigMap labeled `grafana_datasource: "1"` as a datasource.
+
+Confirmed by inspecting the actual chart (`helm show values` / `helm pull` for
+`grafana/loki-stack` 2.10.3): the `loki-stack` chart *already* renders a ConfigMap
+(`templates/datasources.yaml`) labeled `grafana_datasource: "1"` whenever
+`grafana.sidecar.datasources.enabled` is true (its default), independent of whether
+the chart's own bundled Grafana (`grafana.enabled`) is installed. That ConfigMap
+contains a `Loki` datasource pointing at `http://{{ .Release.Name }}:3100` — i.e.
+`http://loki:3100` for our `releaseName: loki`. So **no hand-written datasource
+ConfigMap is needed** — the chart's default output already does the wiring our
+existing Grafana sidecar picks up. The one override needed is `loki.isDefault:
+false`, since the chart defaults that to `true` and we don't want it contesting
+Prometheus's existing default-datasource status in the same Grafana.
+
+Also worth noting: `grafana/loki-stack`'s `Chart.yaml` sets `deprecated: true`
+upstream. It's still fully functional and is the simplest option for this sandbox,
+but this is a stronger signal than "Promtail is in maintenance mode" — the whole
+chart is marked deprecated on Artifact Hub. Acceptable for this scope; flagged here
+in case it affects future upgrade planning.
 
 ## Directory layout
 
@@ -53,30 +69,26 @@ New directory `logging/dev/`, mirroring the existing `monitoring/dev/` structure
 
 ```
 logging/dev/
-  kustomization.yaml       # helmCharts entry for loki-stack + the datasource ConfigMap resource
-  values.yaml               # loki-stack overrides: persistence disabled, otherwise chart defaults
-  grafana-datasource.yaml   # ConfigMap, labeled grafana_datasource: "1", namespace dev-monitoring
+  kustomization.yaml       # helmCharts entry for loki-stack
+  values.yaml              # loki-stack overrides: persistence disabled, loki.isDefault false, grafana disabled
 ```
 
 `logging/dev/kustomization.yaml`:
 - `helmCharts:` — one entry, `name: loki-stack`, `repo: https://grafana.github.io/helm-charts`,
-  `releaseName: loki`, `namespace: dev-monitoring`, `valuesFile: values.yaml`,
-  `includeCRDs: true`. Chart version pinned to a specific release (exact version
-  resolved at implementation time, following the same pinning convention as
-  `monitoring/dev/kustomization.yaml`'s `kube-prometheus-stack` entry).
-- `resources:` — `grafana-datasource.yaml`.
+  `version: 2.10.3`, `releaseName: loki`, `namespace: dev-monitoring`,
+  `valuesFile: values.yaml`, `includeCRDs: true`.
+- No `resources:` needed — the chart itself renders every manifest we need,
+  including the Grafana datasource ConfigMap (see above).
 
 No `namespace.yaml` in this directory — `dev-monitoring` is already created by
 `monitoring/dev/namespace.yaml`. `logging/dev`'s chart resources simply target that
 existing namespace.
 
-`grafana-datasource.yaml` — a ConfigMap in `dev-monitoring`, labeled
-`grafana_datasource: "1"`, containing a Grafana provisioning-format datasource
-definition for Loki (type `loki`, URL pointing at the in-cluster Loki Service's
-ClusterIP DNS name on port 3100). The exact Service name is determined by the
-`loki-stack` chart's naming convention for the `loki` release — confirmed by
-inspecting `kustomize build --enable-helm`'s rendered output during implementation
-rather than assumed here.
+Confirmed Loki Service name/port: the `loki` subchart's fullname template resolves
+to the release name (`loki`) when the release name already contains the subchart
+name, so the in-cluster Loki endpoint is `loki.dev-monitoring.svc.cluster.local:3100`
+(or `loki:3100` from within the same namespace, which is what Promtail's default
+client config and the auto-generated datasource ConfigMap both already use).
 
 ## Wiring into the root
 
