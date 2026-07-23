@@ -6,5 +6,5 @@ resources:
     - ../../app/backend/overlays/dev
     - ../../app/cache/overlays/dev
     - ../../app/frontend/overlays/dev
-    - ../../monitoring/dev
-    - ../../logging/dev
+    - ../../monitoring/prometheus/dev
+    - ../../monitoring/logging/dev
