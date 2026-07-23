@@ -23,5 +23,5 @@ spec:
                       - name: DOWNSTREAM_URL
                         valueFrom:
                             configMapKeyRef:
-                                name: backend-cfg
+                                name: backend-config
                                 key: DOWNSTREAM_URL
