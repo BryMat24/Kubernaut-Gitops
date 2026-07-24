@@ -20,5 +20,3 @@ spec:
                   imagePullPolicy: Always
                   ports:
                       - containerPort: 8000
-                  command:
-                      - /does-not-exist
