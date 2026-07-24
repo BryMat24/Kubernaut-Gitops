@@ -16,9 +16,7 @@ spec:
         spec:
             containers:
                 - name: cache
-                  image: brymat24/test-cache-app:latest
+                  image: brymat24/test-cache-app:latest22
                   imagePullPolicy: Always
                   ports:
                       - containerPort: 8000
-                  command:
-                      - /does-not-exist
